@@ -6,12 +6,13 @@ on:
       - main
 
 jobs:
-  build_and_deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -24,4 +25,14 @@ jobs:
         run: npm install
 
       - name: Deploy to Firebase
-        run: firebase deploy --only functions --token ${{ secrets.FIREBASE_TOKEN }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          # Write the secret (JSON) to a temp file
+          echo "${{ secrets.FIREBASE_TOKEN }}" > /tmp/gcp-key.json
+          # Export the path as env var
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+          # Deploy (no --token!)
+          firebase deploy --only functions --project listify-9fy6o --non-interactive
+          # Cleanup
+          rm /tmp/gcp-key.json
